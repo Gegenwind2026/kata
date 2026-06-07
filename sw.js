@@ -1,4 +1,4 @@
-const CACHE = 'kata-v1';
+const CACHE = 'kata-v2';
 const ASSETS = [
   './index.html',
   './manifest.json',
