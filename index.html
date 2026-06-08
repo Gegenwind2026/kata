@@ -228,6 +228,55 @@
       font-size: 0.78rem;
     }
 
+    .no-repeat-wrap {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.9rem;
+      user-select: none;
+    }
+
+    .toggle-label input { display: none; }
+
+    .toggle-track {
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      position: relative;
+      transition: background 200ms;
+    }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 200ms, background 200ms;
+    }
+
+    .toggle-label input:checked + .toggle-track {
+      background: rgba(255, 122, 24, 0.3);
+      border-color: var(--accent);
+    }
+
+    .toggle-label input:checked + .toggle-track .toggle-thumb {
+      transform: translateX(18px);
+      background: var(--accent);
+    }
+
     @keyframes pulse {
       0%, 100% { transform: scale(1); opacity: 1; }
       50% { transform: scale(1.03); opacity: 0.88; }
@@ -252,6 +301,14 @@
         </div>
 
         <button class="btn" id="drawButton" type="button"></button>
+
+        <div class="no-repeat-wrap">
+          <label class="toggle-label">
+            <input type="checkbox" id="noRepeat" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span id="noRepeatLabel"></span>
+          </label>
+        </div>
 
         <div class="history" id="history" hidden>
           <strong id="historyLabel"></strong>
@@ -282,6 +339,9 @@
                        : 'Press the button and the generator randomly selects a Shotokan kata for training, exam preparation or competition.',
       ready:        de ? 'Bereit?'                 : 'Ready?',
       noKata:       de ? 'Noch keine Kata gezogen.': 'No kata drawn yet.',
+      noRepeat:     de ? 'Keine Wiederholungen'    : 'No repeats',
+      remaining:    n  => de ? `Noch ${n} Kata übrig.` : `${n} kata remaining.`,
+      reshuffled:   de ? 'Alle Kata gezogen — neu gemischt! 🔄' : 'All kata drawn — reshuffled! 🔄',
       draw:         de ? 'Kata auswählen'          : 'Draw Kata',
       drawing:      de ? 'Auswahl läuft …'         : 'Drawing …',
       deciding:     de ? 'Der Zufall entscheidet …': 'Let fate decide …',
@@ -307,6 +367,7 @@
     document.getElementById('install-btn').textContent = t.installBtn;
     document.getElementById('kofiHint').textContent    = t.kofi;
     document.getElementById('footer').textContent      = t.footer;
+    document.getElementById('noRepeatLabel').textContent = t.noRepeat;
 
     // ── Kata-Liste ───────────────────────────────────────────
     const katas = [
@@ -331,6 +392,8 @@
     const recent = [];
     let lastIndex = -1;
     let deferredPrompt = null;
+    let remaining = [...katas];
+    const noRepeatToggle = document.getElementById("noRepeat");
 
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
@@ -370,12 +433,23 @@
         result.textContent = katas[randomIndex(katas.length)];
         if (++ticks >= 18) {
           clearInterval(interval);
-          let fi = randomIndex(katas.length);
-          while (katas.length > 1 && fi === lastIndex) fi = randomIndex(katas.length);
-          lastIndex = fi;
-          const selected = katas[fi];
+          let selected;
+          if (noRepeatToggle.checked) {
+            if (remaining.length === 0) {
+              remaining = [...katas];
+              hint.textContent = t.reshuffled;
+            }
+            const ri = randomIndex(remaining.length);
+            selected = remaining.splice(ri, 1)[0];
+            hint.textContent = t.remaining(remaining.length);
+          } else {
+            let fi = randomIndex(katas.length);
+            while (katas.length > 1 && fi === lastIndex) fi = randomIndex(katas.length);
+            lastIndex = fi;
+            selected = katas[fi];
+            hint.textContent = t.drawn(katas.length);
+          }
           result.textContent = selected;
-          hint.textContent = t.drawn(katas.length);
           resultBox.classList.remove("rolling");
           button.disabled = false;
           button.textContent = t.drawAgain;
