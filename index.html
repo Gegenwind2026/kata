@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Shotokan Kata Zufallsgenerator</title>
+  <title>Shotokan Kata Random Generator</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Kata" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png?v=2" />
 
   <style>
     :root {
@@ -22,13 +22,10 @@
       --muted: #a8b0c4;
       --accent: #ff7a18;
       --accent-2: #ffb347;
-      --success: #9cffc7;
       --shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -47,9 +44,7 @@
       padding-bottom: max(24px, env(safe-area-inset-bottom));
     }
 
-    main {
-      width: min(720px, 100%);
-    }
+    main { width: min(720px, 100%); }
 
     .card {
       position: relative;
@@ -145,20 +140,9 @@
       touch-action: manipulation;
     }
 
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 18px 48px rgba(255, 122, 24, 0.42);
-    }
-
-    .btn:active {
-      transform: translateY(0);
-    }
-
-    .btn:disabled {
-      opacity: 0.72;
-      cursor: wait;
-      transform: none;
-    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 18px 48px rgba(255, 122, 24, 0.42); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.72; cursor: wait; transform: none; }
 
     .history {
       margin-top: 28px;
@@ -190,7 +174,6 @@
       font-size: 0.82rem;
     }
 
-    /* Install-Banner */
     #install-banner {
       display: none;
       margin-top: 18px;
@@ -206,9 +189,7 @@
       flex-wrap: wrap;
     }
 
-    #install-banner.visible {
-      display: flex;
-    }
+    #install-banner.visible { display: flex; }
 
     #install-btn {
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -221,14 +202,38 @@
       cursor: pointer;
     }
 
+    .kofi-wrap {
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    .kofi-btn {
+      display: inline-block;
+      padding: 10px 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      background: rgba(74, 222, 128, 0.1);
+      color: #4ade80;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .kofi-btn:active { opacity: 0.7; transform: scale(0.97); }
+
+    .kofi-hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
     @keyframes pulse {
       0%, 100% { transform: scale(1); opacity: 1; }
       50% { transform: scale(1.03); opacity: 0.88; }
     }
 
-    .rolling #result {
-      animation: pulse 220ms ease-in-out infinite;
-    }
+    .rolling #result { animation: pulse 220ms ease-in-out infinite; }
   </style>
 </head>
 <body>
@@ -236,33 +241,74 @@
     <section class="card" aria-labelledby="title">
       <div class="content">
         <div class="eyebrow">🥋 Shotokan · 26 Kata</div>
-        <h1 id="title">Kata Zufallsgenerator</h1>
-        <p class="subtitle">Drücke den Button und der Generator zieht zufällig eine Shotokan-Kata für Training, Prüfungsvorbereitung oder Wettkampf-Auswahl.</p>
+        <h1 id="title"></h1>
+        <p class="subtitle" id="subtitle"></p>
 
         <div class="result-box" id="resultBox" aria-live="polite">
           <div>
-            <p id="result">Bereit?</p>
-            <p id="hint">Noch keine Kata gezogen.</p>
+            <p id="result"></p>
+            <p id="hint"></p>
           </div>
         </div>
 
-        <button class="btn" id="drawButton" type="button">Kata auswählen</button>
+        <button class="btn" id="drawButton" type="button"></button>
 
         <div class="history" id="history" hidden>
-          <strong>Letzte Ziehungen</strong>
+          <strong id="historyLabel"></strong>
           <div class="history-list" id="historyList"></div>
         </div>
 
         <div id="install-banner">
-          <span>📲 Als App auf dem Homescreen installieren</span>
-          <button id="install-btn" type="button">Installieren</button>
+          <span id="installText"></span>
+          <button id="install-btn" type="button" id="installBtnLabel"></button>
+        </div>
+
+        <div class="kofi-wrap">
+          <a href="https://ko-fi.com/matthias98398" target="_blank" class="kofi-btn">☕ Thanks!</a>
+          <p class="kofi-hint" id="kofiHint"></p>
         </div>
       </div>
     </section>
-    <div class="footer">Funktioniert offline · Als App installierbar</div>
+    <div class="footer" id="footer"></div>
   </main>
 
   <script>
+    // ── Sprache ──────────────────────────────────────────────
+    const de = navigator.language.startsWith('de');
+
+    const t = {
+      title:        de ? 'Kata Zufallsgenerator'   : 'Kata Random Generator',
+      subtitle:     de ? 'Drücke den Button und der Generator zieht zufällig eine Shotokan-Kata für Training, Prüfungsvorbereitung oder Wettkampf-Auswahl.'
+                       : 'Press the button and the generator randomly selects a Shotokan kata for training, exam preparation or competition.',
+      ready:        de ? 'Bereit?'                 : 'Ready?',
+      noKata:       de ? 'Noch keine Kata gezogen.': 'No kata drawn yet.',
+      draw:         de ? 'Kata auswählen'          : 'Draw Kata',
+      drawing:      de ? 'Auswahl läuft …'         : 'Drawing …',
+      deciding:     de ? 'Der Zufall entscheidet …': 'Let fate decide …',
+      drawn:        n  => de ? `Gezogen aus ${n} Shotokan-Kata.` : `Drawn from ${n} Shotokan kata.`,
+      drawAgain:    de ? 'Neue Kata auswählen'     : 'Draw again',
+      history:      de ? 'Letzte Ziehungen'        : 'Recent draws',
+      install:      de ? '📲 Als App auf dem Homescreen installieren' : '📲 Add to Home Screen',
+      installBtn:   de ? 'Installieren'            : 'Install',
+      kofi:         de ? 'Spenden unterstützen den Karateverein Kashiwa Großenhain 🥋'
+                       : 'Donations support Karate Club Kashiwa Großenhain 🥋',
+      footer:       de ? 'Funktioniert offline · Als App installierbar'
+                       : 'Works offline · Installable as app',
+    };
+
+    document.documentElement.lang = de ? 'de' : 'en';
+    document.getElementById('title').textContent       = t.title;
+    document.getElementById('subtitle').textContent    = t.subtitle;
+    document.getElementById('result').textContent      = t.ready;
+    document.getElementById('hint').textContent        = t.noKata;
+    document.getElementById('drawButton').textContent  = t.draw;
+    document.getElementById('historyLabel').textContent= t.history;
+    document.getElementById('installText').textContent = t.install;
+    document.getElementById('install-btn').textContent = t.installBtn;
+    document.getElementById('kofiHint').textContent    = t.kofi;
+    document.getElementById('footer').textContent      = t.footer;
+
+    // ── Kata-Liste ───────────────────────────────────────────
     const katas = [
       "Heian Shodan", "Heian Nidan", "Heian Sandan", "Heian Yondan", "Heian Godan",
       "Tekki Shodan", "Tekki Nidan", "Tekki Sandan",
@@ -273,20 +319,19 @@
       "Gojushiho Dai", "Gojushiho Sho", "Unsu"
     ];
 
-    const result     = document.getElementById("result");
-    const hint       = document.getElementById("hint");
-    const button     = document.getElementById("drawButton");
-    const resultBox  = document.getElementById("resultBox");
-    const history    = document.getElementById("history");
+    const result      = document.getElementById("result");
+    const hint        = document.getElementById("hint");
+    const button      = document.getElementById("drawButton");
+    const resultBox   = document.getElementById("resultBox");
+    const history     = document.getElementById("history");
     const historyList = document.getElementById("historyList");
-    const banner     = document.getElementById("install-banner");
-    const installBtn = document.getElementById("install-btn");
+    const banner      = document.getElementById("install-banner");
+    const installBtn  = document.getElementById("install-btn");
 
     const recent = [];
     let lastIndex = -1;
     let deferredPrompt = null;
 
-    // PWA Install-Prompt abfangen (Android/Chrome)
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
@@ -301,56 +346,39 @@
       if (outcome === 'accepted') banner.classList.remove('visible');
     });
 
-    window.addEventListener('appinstalled', () => {
-      banner.classList.remove('visible');
-    });
+    window.addEventListener('appinstalled', () => banner.classList.remove('visible'));
 
-    // Service Worker registrieren
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js');
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 
     function randomIndex(max) {
-      if (crypto && crypto.getRandomValues) {
-        const array = new Uint32Array(1);
-        crypto.getRandomValues(array);
-        return array[0] % max;
+      if (crypto?.getRandomValues) {
+        const a = new Uint32Array(1);
+        crypto.getRandomValues(a);
+        return a[0] % max;
       }
       return Math.floor(Math.random() * max);
     }
 
     function drawRandomKata() {
-      if (katas.length === 0) return;
-
       button.disabled = true;
-      button.textContent = "Auswahl läuft …";
+      button.textContent = t.drawing;
       resultBox.classList.add("rolling");
-      hint.textContent = "Der Zufall entscheidet …";
+      hint.textContent = t.deciding;
 
       let ticks = 0;
-      const maxTicks = 18;
-
       const interval = setInterval(() => {
         result.textContent = katas[randomIndex(katas.length)];
-        ticks++;
-
-        if (ticks >= maxTicks) {
+        if (++ticks >= 18) {
           clearInterval(interval);
-
-          let finalIndex = randomIndex(katas.length);
-          if (katas.length > 1) {
-            while (finalIndex === lastIndex) {
-              finalIndex = randomIndex(katas.length);
-            }
-          }
-
-          lastIndex = finalIndex;
-          const selected = katas[finalIndex];
+          let fi = randomIndex(katas.length);
+          while (katas.length > 1 && fi === lastIndex) fi = randomIndex(katas.length);
+          lastIndex = fi;
+          const selected = katas[fi];
           result.textContent = selected;
-          hint.textContent = `Gezogen aus ${katas.length} Shotokan-Kata.`;
+          hint.textContent = t.drawn(katas.length);
           resultBox.classList.remove("rolling");
           button.disabled = false;
-          button.textContent = "Neue Kata auswählen";
+          button.textContent = t.drawAgain;
           addToHistory(selected);
         }
       }, 70);
@@ -359,10 +387,8 @@
     function addToHistory(kata) {
       recent.unshift(kata);
       if (recent.length > 6) recent.pop();
-
       history.hidden = false;
       historyList.innerHTML = "";
-
       recent.forEach(item => {
         const chip = document.createElement("span");
         chip.className = "chip";
